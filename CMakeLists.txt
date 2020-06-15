@@ -43,7 +43,7 @@ set(WEBP_DEP_INCLUDE_DIRS)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release"
-      CACHE "Build type: Release, Debug, MinSizeRel or RelWithDebInfo" STRING
+      CACHE STRING "Build type: Release, Debug, MinSizeRel or RelWithDebInfo"
       FORCE)
 endif()
 
@@ -525,7 +525,9 @@ if(WEBP_BUILD_EXTRAS)
   # webp_quality
   add_executable(webp_quality ${WEBP_QUALITY_SRCS} ${WEBP_EXTRAS_SRCS})
   target_link_libraries(webp_quality exampleutil imagedec)
-  target_include_directories(webp_quality PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_include_directories(webp_quality
+                             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+                                     ${CMAKE_CURRENT_BINARY_DIR})
   install(TARGETS webp_quality RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
   # vwebp_sdl
@@ -553,8 +555,8 @@ if(WEBP_BUILD_WEBP_JS)
   set(WEBP_HAVE_SDL 1)
   set_target_properties(
     webp_js
-    PROPERTIES LINK_FLAGS
-               "-s EXPORTED_FUNCTIONS='[\"_WebpToSDL\"]' -s INVOKE_RUN=0 \
+    PROPERTIES LINK_FLAGS "-s WASM=0 \
+       -s EXPORTED_FUNCTIONS='[\"_WebpToSDL\"]' -s INVOKE_RUN=0 \
        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"cwrap\"]'")
   set_target_properties(webp_js PROPERTIES OUTPUT_NAME webp)
   target_compile_definitions(webp_js PUBLIC EMSCRIPTEN WEBP_HAVE_SDL)
