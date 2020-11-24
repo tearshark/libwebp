@@ -51,9 +51,6 @@ extern "C" {
 # define __has_builtin(x) 0
 #endif
 
-// for now, none of the optimizations below are available in emscripten
-#if !defined(EMSCRIPTEN)
-
 #if defined(_MSC_VER) && _MSC_VER > 1310 && \
     (defined(_M_X64) || defined(_M_IX86))
 #define WEBP_MSC_SSE2  // Visual C++ SSE2 targets
@@ -109,8 +106,6 @@ extern "C" {
 #if defined(__mips_msa) && defined(__mips_isa_rev) && (__mips_isa_rev >= 5)
 #define WEBP_USE_MSA
 #endif
-
-#endif  /* EMSCRIPTEN */
 
 #ifndef WEBP_DSP_OMIT_C_CODE
 #define WEBP_DSP_OMIT_C_CODE 1
@@ -638,6 +633,8 @@ extern void (*WebPPackRGB)(const uint8_t* r, const uint8_t* g, const uint8_t* b,
 extern int (*WebPHasAlpha8b)(const uint8_t* src, int length);
 // This function returns true if src[4*i] contains a value different from 0xff.
 extern int (*WebPHasAlpha32b)(const uint8_t* src, int length);
+// replaces transparent values in src[] by 'color'.
+extern void (*WebPAlphaReplace)(uint32_t* src, int length, uint32_t color);
 
 // To be called first before using the above.
 void WebPInitAlphaProcessing(void);

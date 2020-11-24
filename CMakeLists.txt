@@ -3,7 +3,13 @@ cmake_minimum_required(VERSION 3.5)
 project(WebP C)
 
 # Options for coder / decoder executables.
-option(WEBP_ENABLE_SIMD "Enable any SIMD optimization." ON)
+if(NOT EMSCRIPTEN)
+  # Disable SIMD on Emscripten by default, as it's a new unstable Wasm feature.
+  # Users can still explicitly opt-in to make a SIMD-enabled build.
+  set(WEBP_ENABLE_SIMD_DEFAULT ON)
+endif()
+option(WEBP_ENABLE_SIMD "Enable any SIMD optimization."
+       ${WEBP_ENABLE_SIMD_DEFAULT})
 option(WEBP_BUILD_ANIM_UTILS "Build animation utilities." ON)
 option(WEBP_BUILD_CWEBP "Build the cwebp command line tool." ON)
 option(WEBP_BUILD_DWEBP "Build the dwebp command line tool." ON)
@@ -26,7 +32,6 @@ if(WIN32)
 endif()
 
 if(WEBP_BUILD_WEBP_JS)
-  set(WEBP_ENABLE_SIMD OFF)
   set(WEBP_BUILD_ANIM_UTILS OFF)
   set(WEBP_BUILD_CWEBP OFF)
   set(WEBP_BUILD_DWEBP OFF)
@@ -164,6 +169,29 @@ add_definitions(-DHAVE_CONFIG_H)
 
 # ##############################################################################
 # Build the webpdecoder library.
+
+# Creates a source file with an unused stub function in $CMAKE_BINARY_DIR and
+# adds it to the specified target. Currently used only with Xcode.
+#
+# See also:
+# https://cmake.org/cmake/help/v3.18/command/add_library.html#object-libraries
+# "Some native build systems (such as Xcode) may not like targets that have
+# only object files, so consider adding at least one real source file to any
+# target that references $<TARGET_OBJECTS:objlib>."
+function(libwebp_add_stub_file TARGET)
+  set(stub_source_dir "${CMAKE_BINARY_DIR}")
+  set(stub_source_file
+      "${stub_source_dir}/libwebp_${TARGET}_stub.c")
+  set(stub_source_code
+      "// Generated file. DO NOT EDIT!\n"
+      "// C source file created for target ${TARGET}.\n"
+      "void libwebp_${TARGET}_stub_function(void)\;\n"
+      "void libwebp_${TARGET}_stub_function(void) {}\n")
+  file(WRITE "${stub_source_file}" ${stub_source_code})
+
+  target_sources(${TARGET} PRIVATE ${stub_source_file})
+endfunction()
+
 if(MSVC)
   # avoid security warnings for e.g., fopen() used in the examples.
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -190,6 +218,9 @@ add_library(webpdecoder
             $<TARGET_OBJECTS:webpdecode>
             $<TARGET_OBJECTS:webpdspdecode>
             $<TARGET_OBJECTS:webputilsdecode>)
+if(XCODE)
+  libwebp_add_stub_file(webpdecoder)
+endif()
 target_link_libraries(webpdecoder ${WEBP_DEP_LIBRARIES})
 target_include_directories(
   webpdecoder
@@ -229,6 +260,9 @@ add_library(webp
             $<TARGET_OBJECTS:webpdsp>
             $<TARGET_OBJECTS:webpencode>
             $<TARGET_OBJECTS:webputils>)
+if(XCODE)
+  libwebp_add_stub_file(webp)
+endif()
 target_link_libraries(webp ${WEBP_DEP_LIBRARIES})
 target_include_directories(webp
                            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
